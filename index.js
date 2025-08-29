@@ -1,3 +1,4 @@
+//the previous deployment (Server Deployment Testing - 2.) works fine. the webhook payment  is the issue
 require("dotenv").config();
 const express = require("express");
 const mongoose = require("mongoose");
@@ -265,7 +266,7 @@ server.post("/create-payment-intent", async (req, res) => {
   console.log("▶️  Hit CREATE PAYMENT INTENT route", req.method, req.url);
   console.log("▶️  Raw req.body:", req.body);
 
-  const { totalAmount } = req.body; // now it's a proper number
+  const { totalAmount, orderId } = req.body; // now it's a proper number
 
   try {
     const paymentIntent = await stripe.paymentIntents.create({
@@ -274,6 +275,9 @@ server.post("/create-payment-intent", async (req, res) => {
       automatic_payment_methods: {
         enabled: true,
       },
+      metadata : {
+        orderId
+      }
     });
 
     console.log("✅ paymentIntent:", paymentIntent); // clearer logging
