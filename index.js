@@ -188,7 +188,7 @@ server.use(
   })
 ); //To protect users. Without it, any website could secretly make requests to any other site where you're logged in — that would be a security risk.
 
-server.use(express.static (path.resolve(__dirname, "build")))
+server.use(express.static(path.resolve(__dirname, "build")));
 // server.use(express.static (path.join(__dirname, "build")))
 // server.use(express.static( "build"))
 server.use(cookieParser()); //TO EXTRACT THE COOKIES FROM REQ.COOKIES
@@ -301,7 +301,10 @@ server.use("/users", isAuth(), usersRouter.router);
 server.use("/auth", authRouter.router);
 server.use("/cart", isAuth(), cartRouter.router);
 server.use("/orders", isAuth(), ordersRouter.router);
-server.get("*", (req, res) => res.sendFile(path.resolve("build", "index.html")));
+// server.get("*", (req, res) => res.sendFile(path.resolve("build", "index.html"))); //i cannot use this in express 5
+server.get(/.*/, (req, res) => {
+  res.sendFile(path.resolve("build", "index.html"));
+});  //it acts as a catch-all fallback that matches every possible incoming URL, including the root path, subpaths, query strings, etc. 
 
 main().catch((err) => console.log(err));
 
