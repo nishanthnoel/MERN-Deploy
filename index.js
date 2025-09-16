@@ -13,6 +13,12 @@ const jwt = require("jsonwebtoken");
 const cookieParser = require("cookie-parser"); //for cookies from client side
 const path = require("path");
 const bodyParser = require("body-parser");
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.error("❌ STRIPE_SECRET_KEY is missing in environment!");
+  throw new Error("Stripe not configured properly. Missing secret key.");
+}
+
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 // 🚀 Init express app
@@ -173,8 +179,8 @@ server.post(
       const paymentIntent = event.data.object;
       //adding new payment Status
       const order = await Order.findById(paymentIntent.metadata.orderId);
-      order.paymentStatus = "received"
-      await order.save()
+      order.paymentStatus = "received";
+      await order.save();
       console.log("💰 PaymentIntent succeeded:", paymentIntent.id); //works
     }
 
@@ -271,8 +277,8 @@ server.post("/create-payment-intent", async (req, res) => {
   console.log("▶️  Raw req.body:", req.body);
 
   const { totalAmount, orderId } = req.body; // now it's a proper number
-  console.log(orderId)
-    if (!Number.isFinite(totalAmount)) {
+  console.log(orderId);
+  if (!Number.isFinite(totalAmount)) {
     console.error("❌ Invalid or missing totalAmount:", totalAmount);
     return res.status(400).send({ error: "Invalid totalAmount" });
   }
@@ -289,9 +295,9 @@ server.post("/create-payment-intent", async (req, res) => {
       automatic_payment_methods: {
         enabled: true,
       },
-      metadata : {
-        orderId
-      }
+      metadata: {
+        orderId,
+      },
     });
 
     console.log("✅ paymentIntent:", paymentIntent); // clearer logging
@@ -323,7 +329,7 @@ server.use("/orders", isAuth(), ordersRouter.router);
 // server.get("*", (req, res) => res.sendFile(path.resolve("build", "index.html"))); //i cannot use this in express 5
 server.get(/.*/, (req, res) => {
   res.sendFile(path.resolve("build", "index.html"));
-});  //it acts as a catch-all fallback that matches every possible incoming URL, including the root path, subpaths, query strings, etc. 
+}); //it acts as a catch-all fallback that matches every possible incoming URL, including the root path, subpaths, query strings, etc.
 
 main().catch((err) => console.log(err));
 
