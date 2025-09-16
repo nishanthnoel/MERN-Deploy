@@ -271,6 +271,16 @@ server.post("/create-payment-intent", async (req, res) => {
   console.log("▶️  Raw req.body:", req.body);
 
   const { totalAmount, orderId } = req.body; // now it's a proper number
+  console.log(orderId)
+    if (!Number.isFinite(totalAmount)) {
+    console.error("❌ Invalid or missing totalAmount:", totalAmount);
+    return res.status(400).send({ error: "Invalid totalAmount" });
+  }
+
+  if (!orderId) {
+    console.error("❌ Missing orderId");
+    return res.status(400).send({ error: "Missing orderId" });
+  }
 
   try {
     const paymentIntent = await stripe.paymentIntents.create({
