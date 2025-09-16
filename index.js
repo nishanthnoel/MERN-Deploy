@@ -155,7 +155,7 @@ const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
 server.post(
   "/webhook",
   bodyParser.raw({ type: "application/json" }),
-  (req, res) => {
+  async (req, res) => {
     const sig = req.headers["stripe-signature"];
 
     let event;
@@ -171,6 +171,10 @@ server.post(
     if (event.type === "payment_intent.succeeded") {
       console.log("✅ PaymentIntent succeeded!");
       const paymentIntent = event.data.object;
+      //adding new payment Status
+      const order = await Order.findById(paymentIntent.metadata.orderId);
+      order.paymentStatus = "received"
+      await order.save()
       console.log("💰 PaymentIntent succeeded:", paymentIntent.id); //works
     }
 
@@ -296,6 +300,7 @@ const usersRouter = require("./routes/Users");
 const authRouter = require("./routes/Auth");
 const cartRouter = require("./routes/Cart");
 const ordersRouter = require("./routes/Order");
+const { Order } = require("./model/Order");
 
 // server.use("/products", isAuth, productsRouters.router); //we can use jwt toke for client auth only
 server.use("/products", isAuth(), productsRouters.router);
