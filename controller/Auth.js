@@ -53,20 +53,29 @@ exports.createUser = async (req, res) => {
   }
 };
 exports.loginUser = async (req, res) => {
-  // res.json(req.user); //commented becaose we send token by cookie
-  console.log("login", req.user.token);
-
-  res
-    .cookie("jwt", req.user.token, {
-      expires: new Date(Date.now() + 3600000),
-      sameSite: "Lax", // Use "Lax" for localhost, "None" for HTTPS
-      secure: false, // Use true only in production with HTTPS
-      httpOnly: true,
-    })
-    .status(201)
-    // .json(req.user.token);//old code
-    .json({ id: req.user.id, role: req.user.role }); // sending user id and role is actually helping in logging in
-
+  try {
+    // res.json(req.user); //commented becaose we send token by cookie
+    console.log("login", req.user.token);
+    const user = req.user;
+    if (!user) {
+      // This case should be handled by passport, but as a fallback
+      return res.status(401).json({ message: "Authentication failed" });
+    }
+    const token = jwt.sign(sanitizeUser(user), process.env.JWT_SECRET_KEY);
+    res
+      .cookie("jwt", req.user.token, {
+        expires: new Date(Date.now() + 3600000),
+        sameSite: "Lax", // Use "Lax" for localhost, "None" for HTTPS
+        secure: false, // Use true only in production with HTTPS
+        httpOnly: true,
+      })
+      .status(201)
+      // .json(req.user.token);//old code
+      .json({ id: req.user.id, role: req.user.role }); // sending user id and role is actually helping in logging in
+  } catch (err) {
+    console.error("Login failed:", err);
+    res.status(500).json({ error: "Internal Server Error" });
+  }
   // res.json({status:"success"});
 
   // try {

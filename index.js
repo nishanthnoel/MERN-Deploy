@@ -81,7 +81,8 @@ passport.use(
               console.log("localstrargy", token);
               // return done(null, { token });//old code  // this line sends to serialize
               // return done(null, { id: user.id, role: user.role }); // this throws an error, because it serializes
-              return done(null, { id: user.id, role: user.role, token }); // this works, because we are sending token // this is req.user
+              // return done(null, { id: user.id, role: user.role, token }); // this works, because we are sending token // this is req.user
+              return done(null, { id: user.id, role: user.role });
             }
           }
         );
@@ -120,12 +121,21 @@ passport.serializeUser(function (user, cb) {
 });
 
 //this changes session variable req.user when called from authorized requests
-passport.deserializeUser(function (user, cb) {
-  console.log("de-serialize", user);
+// passport.deserializeUser(function (user, cb) {
+//   console.log("de-serialize", user);
 
-  process.nextTick(function () {
+//   process.nextTick(function () {
+//     return cb(null, user);
+//   });
+// });
+passport.deserializeUser(async function (id, cb) {
+  try {
+    const user = await User.findById(id).exec();
+    // The user object found here is what becomes req.user
     return cb(null, user);
-  });
+  } catch (err) {
+    return cb(err);
+  }
 });
 
 //webhook
