@@ -1,4 +1,7 @@
 const { Order } = require("../model/Order");
+const { Product } = require("../model/Product");
+const { User } = require("../model/User");
+const { sendMail, invoiceTemplate } = require("../services/common");
 
 exports.fetchOrdersByUser = async (req, res) => {
   // const { user } = req.query; //old
@@ -23,10 +26,39 @@ exports.fetchOrdersByUser = async (req, res) => {
 
 exports.createOrder = async (req, res) => {
   const order = new Order(req.body);
+  console.log("Order items:", order.items);
+  // here we update the stock after the order is placed
+  for (let item of order.items) {
+    // determine product id (support different shapes)
+    const productId =
+      (item.product && (item.product.id || item.product._id)) ||
+      item.product ||
+      item.productId;
+
+    // fetch the product by _id
+    const product = await Product.findById(productId);
+
+    // guard: product must exist
+    if (!product) {
+      return res.status(404).json({ error: `Product not found: ${productId}` });
+    }
+
+    // guard: ensure sufficient stock
+    if (product.stock < item.quantity) {
+      return res.status(400).json({ error: `Insufficient stock for product ${product.title || productId}` });
+    }
+
+    // decrement stock and save
+    product.stock = product.stock - item.quantity;
+    await product.save();
+  }
+
   try {
-    const doc = await order.save();
+    const odr = await order.save();
+    const user = await User.findById(order.user);
+    sendMail({to: user.email, subject: "Thank you for your order", html: invoiceTemplate(order)});
     // const result = await doc.populate("product");
-    res.status(200).json(doc);
+    res.status(200).json(odr);
   } catch (err) {
     res.status(400).json(err);
   }
@@ -59,8 +91,6 @@ exports.updateOrder = async (req, res) => {
 };
 
 exports.fetchAllOrders = async (req, res) => {
-  //TODO: we have to try with multiple categories and brands
-  //TODO: to get sorting using discountedPrice
   // let query = Product.find({});
   let query = Order.find(); //ne means not equal to
   let totalOrdersQuery = Order.find(); //another method without using .clone()

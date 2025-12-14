@@ -21,6 +21,9 @@ const { Product } = require("../model/Product");
 // sending a response after success or error
 exports.createProduct = async (req, res) => {
   const product = new Product(req.body);
+  product.discountPrice = Math.round(
+    product.price * (1 - product.discountPercentage / 100)
+  );
   try {
     const docs = await product.save();
     res.status(201).json(docs); // whe virtuals used this doc to tge frontend goes without _
@@ -31,25 +34,28 @@ exports.createProduct = async (req, res) => {
   }
 };
 exports.fetchAllProducts = async (req, res) => {
-  //TODO: we have to try with multiple categories and brands
-  //TODO: to get sorting using discountedPrice
-  // let query = Product.find({}); 
-  let condition ={  }
-  if(!req.query.admin){
-    condition.deleted = {$ne:true}
+  // let query = Product.find({});
+  let condition = {};
+  if (!req.query.admin) {
+    condition.deleted = { $ne: true };
   }
-  let query = Product.find(condition);   //ne means not equal to 
+  let query = Product.find(condition); //ne means not equal to
   let totalProductsQuery = Product.find(condition); //another method without using .clone()
-
+  console.log(req.query.category);
   if (req.query.category) {
-    query = query.find({ category: req.query.category });
+    // query = query.find({ category: req.query.category });  //change to add multiple categories and brands
+    query = query.find({ category: { $in: req.query.category.split(",") } }); // since we get like smartphone, laptop. like comma separated values. we are trying to split and convert to array
     totalProductsQuery = totalProductsQuery.find({
-      category: req.query.category,
+      category: { $in: req.query.category.split(",") },
     }); //another method without using .clone()
   }
   if (req.query.brand) {
-    query = query.find({ brand: req.query.brand });
-    totalProductsQuery = totalProductsQuery.find({ brand: req.query.brand }); // another method without using .clone()
+    // query = query.find({ brand: req.query.brand }); // change to add multiple categories and brands
+    query = query.find({ brand: { $in: req.query.brand.split(",") } }); // since we get like samsung, apple. like comma separated values. we are trying to split and convert to array
+    // totalProductsQuery = totalProductsQuery.find({ brand: req.query.brand }); // another method without using .clone()  // change to add multiple categories and brands
+    totalProductsQuery = totalProductsQuery.find({
+      brand: { $in: req.query.brand.split(",") },
+    }); // another method without using .clone()
   }
   if (req.query._sort && req.query._order) {
     query = query.sort({ [req.query._sort]: req.query._order });
@@ -113,9 +119,15 @@ exports.fetchProductsById = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   const { id } = req.params;
   try {
-    const product = await Product.findByIdAndUpdate(id, req.body, {new:true});
+    const product = await Product.findByIdAndUpdate(id, req.body, {
+      new: true,
+    });
+    product.discountPrice = Math.round(
+      product.price * (1 - product.discountPercentage / 100)
+    );
+    const updateProduct = await product.save();
     // { new: true } By default, Mongoose returns the old document before the update.This option tells Mongoose: "Give me the updated product instead."
-    res.status(200).json(product);
+    res.status(200).json(updateProduct);
   } catch (err) {
     res.status(400).json(err);
   }

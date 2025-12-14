@@ -13,13 +13,24 @@ const { User } = require("../model/User");
 // };
 
 exports.fetchUserById = async (req, res) => {
-  res.set('Cache-Control', 'no-store'); //this was added for problem faced for fetchinh userInfo
+  console.log("req.user:", req.user);
+
+  res.set("Cache-Control", "no-store"); //this was added for problem faced for fetchinh userInfo
+  if (!req.user) {
+    return res.status(401).json({ error: "Unauthorized: req.user missing" });
+  }
   const { id } = req.user;
+  console.log("req.user = ", req.user);
 
   try {
     const user = await User.findById(id);
- 
-    res.status(200).json({id: user.id, addresses:user.addresses, role: user.role, email:user.email});
+
+    res.status(200).json({
+      id: user.id,
+      addresses: user.addresses,
+      role: user.role,
+      email: user.email,
+    });
   } catch (err) {
     res.status(400).json(err);
   }
